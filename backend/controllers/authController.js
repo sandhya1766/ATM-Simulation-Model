@@ -20,7 +20,10 @@ const generateToken = (userId, cardId = null) => {
 // 1. Check Card Number & Expiry
 exports.checkCard = async (req, res) => {
   try {
-    const { cardNumber, expiryDate } = req.body;
+    let { cardNumber, expiryDate } = req.body;
+
+    // Remove spaces and non-digit characters
+    cardNumber = String(cardNumber).replace(/\D/g, '');
     const ipAddress = req.ip || req.connection.remoteAddress;
 
     const card = await Card.findOne({ cardNumber }).populate('user');
@@ -96,7 +99,7 @@ exports.verifyPin = async (req, res) => {
     const isMatch = await card.comparePin(pin);
     if (!isMatch) {
       card.failedAttempts += 1;
-      
+
       let message = `Incorrect PIN. ${3 - card.failedAttempts} attempts remaining.`;
       let shouldBlock = card.failedAttempts >= 3;
 
@@ -378,7 +381,7 @@ exports.logout = async (req, res) => {
         await session.save();
       }
     }
-    
+
     await AuditLog.create({
       user: req.user ? req.user._id : null,
       cardNumber: req.card ? req.card.cardNumber : '',
